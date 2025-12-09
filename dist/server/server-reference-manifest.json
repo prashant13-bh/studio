@@ -1,5 +1,36 @@
 {
-  "node": {},
+  "node": {
+    "40bb0b686ba10a2e7cc9a178c508a1fcc66d4af9c1": {
+      "workers": {
+        "app/page": {
+          "moduleId": "[project]/.next-internal/server/app/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/ai/flows/generate-reply-to-message.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/ai/flows/summarize-webpage-content.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "generateReplyToMessage",
+          "filename": "src/ai/flows/generate-reply-to-message.ts"
+        }
+      },
+      "layer": {
+        "app/page": "action-browser"
+      },
+      "filename": "src/ai/flows/generate-reply-to-message.ts",
+      "exportedName": "generateReplyToMessage"
+    },
+    "4070e9c71bc2e77eeec4efdebb5a97d0e435840616": {
+      "workers": {
+        "app/page": {
+          "moduleId": "[project]/.next-internal/server/app/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/ai/flows/generate-reply-to-message.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/ai/flows/summarize-webpage-content.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "summarizeWebpageContent",
+          "filename": "src/ai/flows/summarize-webpage-content.ts"
+        }
+      },
+      "layer": {
+        "app/page": "action-browser"
+      },
+      "filename": "src/ai/flows/summarize-webpage-content.ts",
+      "exportedName": "summarizeWebpageContent"
+    }
+  },
   "edge": {},
   "encryptionKey": "rHlpPCy/7C5kasNd76RtOIhEKI4MVeJnI8bUOmDY1fY="
 }
