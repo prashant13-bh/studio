@@ -633,6 +633,14 @@ body {
   margin-top: 1rem;
 }
 
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.mr-2 {
+  margin-right: .5rem;
+}
+
 .block {
   display: block;
 }
@@ -842,6 +850,14 @@ body {
   width: 100%;
 }
 
+.w-12 {
+  width: 3rem;
+}
+
+.w-6 {
+  width: 1.5rem;
+}
+
 .min-w-0 {
   min-width: 0;
 }
@@ -872,6 +888,14 @@ body {
 
 .max-w-lg {
   max-width: 32rem;
+}
+
+.max-w-2xl {
+  max-width: 42rem;
+}
+
+.max-w-\[85\%\] {
+  max-width: 85%;
 }
 
 .flex-1 {
@@ -1321,6 +1345,10 @@ body {
   padding: 1px;
 }
 
+.p-8 {
+  padding: 2rem;
+}
+
 .px-1 {
   padding-left: .25rem;
   padding-right: .25rem;
@@ -1482,6 +1510,16 @@ body {
   line-height: 1rem;
 }
 
+.text-4xl {
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+}
+
+.text-xl {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+
 .font-medium {
   font-weight: 500;
 }
@@ -1574,6 +1612,10 @@ body {
 
 .text-sidebar-foreground\/70 {
   color: hsl(var(--sidebar-foreground) / .7);
+}
+
+.text-muted-foreground\/80 {
+  color: hsl(var(--muted-foreground) / .8);
 }
 
 .underline-offset-4 {
