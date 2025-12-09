@@ -1,9 +1,9 @@
-import { get_encoding, Tiktoken } from 'js-tiktoken';
+import { getEncoding, Tiktoken } from 'js-tiktoken';
 
 let encoding: Tiktoken;
 
 try {
-  encoding = get_encoding('cl100k_base');
+  encoding = getEncoding('cl100k_base');
 } catch (error) {
   console.error("Failed to load tokenizer, token counting will not be accurate.", error);
 }
