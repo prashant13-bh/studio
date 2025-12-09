@@ -22,6 +22,10 @@ interface SettingsDialogProps {
   onSave: (apiKey: string) => void;
 }
 
+// Helper to check if running inside a Chrome extension
+const isExtensionContext = () => typeof chrome !== 'undefined' && !!chrome.runtime?.id;
+
+
 export default function SettingsDialog({ isOpen, onClose, onSave }: SettingsDialogProps) {
   const [apiKey, setApiKey] = useState('');
   const [password, setPassword] = useState('');
@@ -29,13 +33,37 @@ export default function SettingsDialog({ isOpen, onClose, onSave }: SettingsDial
   const [isKeySaved, setIsKeySaved] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      const savedKeyData = localStorage.getItem('gravity_api_key');
-      setIsKeySaved(!!savedKeyData);
-      setApiKey('');
-      setPassword('');
+  const getStorage = () => {
+    if (isExtensionContext()) {
+      return {
+        getItem: async (key: string) => {
+            const response = await chrome.runtime.sendMessage({ action: 'readFromStorage', key });
+            return response.data;
+        },
+        setItem: async (key: string, value: string) => {
+            await chrome.runtime.sendMessage({ action: 'writeToStorage', key, value });
+        },
+      };
     }
+    return {
+        getItem: async (key: string) => localStorage.getItem(key),
+        setItem: async (key: string, value: string) => localStorage.setItem(key, value),
+    };
+  };
+
+  const storage = getStorage();
+
+
+  useEffect(() => {
+    async function checkSavedKey() {
+        if (isOpen) {
+            const savedKeyData = await storage.getItem('gravity_api_key');
+            setIsKeySaved(!!savedKeyData);
+            setApiKey('');
+            setPassword('');
+        }
+    }
+    checkSavedKey();
   }, [isOpen]);
 
   const handleSave = async () => {
@@ -46,12 +74,13 @@ export default function SettingsDialog({ isOpen, onClose, onSave }: SettingsDial
     setIsLoading(true);
     try {
       const encryptedKey = await encryptData(apiKey, password);
-      localStorage.setItem('gravity_api_key', encryptedKey);
+      await storage.setItem('gravity_api_key', encryptedKey);
       toast.success('API Key saved securely!');
       onSave(apiKey);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
       toast.error('Failed to save API Key.', {
-        description: error instanceof Error ? error.message : 'An unknown error occurred.',
+        description: `Please ensure the extension has storage permissions. Details: ${errorMessage}`,
       });
     } finally {
       setIsLoading(false);
@@ -65,7 +94,7 @@ export default function SettingsDialog({ isOpen, onClose, onSave }: SettingsDial
     }
     setIsLoading(true);
     try {
-      const encryptedKey = localStorage.getItem('gravity_api_key');
+      const encryptedKey = await storage.getItem('gravity_api_key');
       if (!encryptedKey) {
         toast.error('No API Key found in storage.');
         return;
@@ -90,7 +119,7 @@ export default function SettingsDialog({ isOpen, onClose, onSave }: SettingsDial
           <DialogDescription>
             {isKeySaved
               ? 'Enter your Master Password to unlock your saved API key.'
-              : "Set your API key and a Master Password to encrypt it. Your key is stored securely on your device and never sent to our servers."}
+              : "Set your API key and a Master Password to encrypt it. Your key is stored securely in your browser and never sent to our servers."}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">

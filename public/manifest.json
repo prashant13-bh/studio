@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "GravityAI",
+  "version": "1.0",
+  "description": "AI-integrated, cross-platform applications by Project Gravity",
+  "permissions": [
+    "sidePanel",
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "side_panel": {
+    "default_path": "index.html"
+  },
+  "action": {
+    "default_title": "Open GravityAI"
+  }
+}

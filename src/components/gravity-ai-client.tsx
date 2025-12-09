@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Bot, Loader, Send, Settings, Sparkles, Clipboard, Check } from 'lucide-react';
+import { Bot, Loader, Send, Settings, Sparkles, Clipboard, Check, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +19,7 @@ import { freeTokenizer } from '@/lib/core-ai/tokenizer';
 import { cn } from '@/lib/utils';
 
 
-const SYSTEM_INSTRUCTION = "You are GravityAI, an intelligent assistant. Your goal is to provide accurate, helpful, and concise responses. Format your answers clearly, using markdown where appropriate.";
+const SYSTEM_INSTRUCTION = "You are GravityAI, an intelligent assistant integrated into a browser extension. Your goal is to provide accurate, helpful, and concise responses. When provided with context from a webpage, use it to answer the user's questions. Format your answers clearly, using markdown where appropriate.";
 
 export default function GravityAIClient() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -27,30 +27,39 @@ export default function GravityAIClient() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [apiKey, setApiKey] = useState<string | null>(null);
+  const [pageContext, setPageContext] = useState<string | null>(null);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const promptBuilderRef = useRef(new PromptBuilder());
 
   useEffect(() => {
-    // Check if API key is configured on mount
-    const encryptedKey = localStorage.getItem('gravity_api_key');
-    if (!encryptedKey) {
-      toast.info('Welcome to GravityAI!', {
-        description: 'Please set your API key in the settings to get started.',
-        duration: 5000,
-      });
-      setIsSettingsOpen(true);
+    async function checkApiKey() {
+      try {
+        const response = await chrome.runtime.sendMessage({ action: 'readFromStorage', key: 'gravity_api_key' });
+        if (!response.data) {
+          toast.info('Welcome to GravityAI!', {
+            description: 'Please set your API key in the settings to get started.',
+            duration: 5000,
+          });
+          setIsSettingsOpen(true);
+        }
+      } catch (e) {
+        console.info("Running outside of extension context. Using localStorage.");
+        const localKey = localStorage.getItem('gravity_api_key');
+        if(!localKey) {
+            setIsSettingsOpen(true);
+        }
+      }
     }
+    checkApiKey();
 
-    // Set initial system prompt and welcome message
     promptBuilderRef.current.setSystem(SYSTEM_INSTRUCTION);
-    setMessages([{ role: 'assistant', content: "Hello! I'm GravityAI. How can I assist you today?" }]);
+    setMessages([{ role: 'assistant', content: "Hello! I'm GravityAI. How can I assist you today? Click the document icon to analyze the current page." }]);
 
     return () => freeTokenizer();
   }, []);
 
   useEffect(() => {
-    // Auto-scroll to bottom
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTo({
         top: scrollAreaRef.current.scrollHeight,
@@ -59,6 +68,31 @@ export default function GravityAIClient() {
     }
   }, [messages]);
   
+  const handleAnalyzePage = async () => {
+    setIsLoading(true);
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab.id) {
+        const response = await chrome.tabs.sendMessage(tab.id, { action: 'getPageContent' });
+        if (response && response.data) {
+          setPageContext(response.data);
+          toast.success("Page content analyzed.", {
+            description: "You can now ask questions about this page.",
+          });
+        } else {
+            toast.error("Could not analyze page.", { description: "No content was returned."})
+        }
+      }
+    } catch (error) {
+      console.error("Error analyzing page:", error);
+      toast.error("Could not analyze page.", {
+        description: "Please ensure you have permissions and try again. The content script might not be active."
+      });
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading || !apiKey) {
@@ -68,9 +102,10 @@ export default function GravityAIClient() {
 
     const userMessage: Message = { role: 'user', content: input };
     setMessages(prev => [...prev, userMessage]);
-    promptBuilderRef.current.addUserMessage(input);
+    promptBuilderRef.current.addUserMessage(input, pageContext ?? undefined);
     setInput('');
     setIsLoading(true);
+    setPageContext(null); // Consume context
 
     try {
       const builtMessages = promptBuilderRef.current.build();
@@ -118,7 +153,7 @@ export default function GravityAIClient() {
 
   return (
     <TooltipProvider>
-      <Card className="w-[95vw] max-w-2xl h-[85vh] flex flex-col shadow-2xl shadow-primary/10">
+      <Card className="w-full h-screen flex flex-col shadow-none border-0 rounded-none">
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-3">
             <Sparkles className="h-8 w-8 text-primary" />
@@ -152,6 +187,11 @@ export default function GravityAIClient() {
                       ? "bg-primary text-primary-foreground" 
                       : "bg-muted text-muted-foreground"
                   )}>
+                     {pageContext && msg.role === 'user' && (
+                        <div className="mb-2 p-2 border-l-2 border-accent text-xs italic opacity-70">
+                            Context from page included.
+                        </div>
+                     )}
                     <p className="whitespace-pre-wrap">{msg.content}</p>
                      {msg.role === 'assistant' && msg.content && (
                          <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -181,10 +221,20 @@ export default function GravityAIClient() {
             </div>
           </ScrollArea>
           <form onSubmit={handleSubmit} className="flex items-center gap-2 p-2 border-t">
+             <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={handleAnalyzePage} disabled={isLoading || !apiKey}>
+                      <FileText className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Analyze Page Content</p>
+                </TooltipContent>
+            </Tooltip>
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask GravityAI..."
+              placeholder="Ask about the page or anything else..."
               className="flex-1"
               disabled={isLoading || !apiKey}
             />
